@@ -8,6 +8,7 @@
 
 class UPangeaVoxelComponent;
 class FPangeaVoxelMeshRenderData;
+struct FPangeaVoxelMeshBuffers;
 
 class PANGEAVOXEL_API FPangeaVoxelSceneProxy : public FPrimitiveSceneProxy
 {

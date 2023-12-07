@@ -13,6 +13,8 @@ FPangeaVoxelSceneProxy::FPangeaVoxelSceneProxy(UPangeaVoxelComponent* Component)
 {
 	const ERHIFeatureLevel::Type FeatureLevel = GetScene().GetFeatureLevel();
 
+	VoxelMeshBuffers = Component->GetCachedMeshBuffers();
+
 	Material = Component->GetVoxelMaterial();
 	if (!Material)
 	{

@@ -54,4 +54,3 @@ void UPangeaVoxelComponent::UpdateLocalBounds(const FBox& InBounds)
 	// Need to send to render thread
 	MarkRenderTransformDirty();
 }
-

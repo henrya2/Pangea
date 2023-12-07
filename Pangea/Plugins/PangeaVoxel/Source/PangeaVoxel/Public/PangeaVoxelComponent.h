@@ -9,7 +9,7 @@ class UMaterialInterface;
 struct FPangeaVoxelMeshSection;
 struct FPangeaVoxelMeshBuffers;
 
-UCLASS()
+UCLASS(BlueprintType, ClassGroup = Pangea, meta = (BlueprintSpawnableComponent))
 class PANGEAVOXEL_API UPangeaVoxelComponent : public UPrimitiveComponent
 {
 	GENERATED_BODY()
@@ -39,6 +39,9 @@ protected:
 	/** The material to render with */
 	UPROPERTY()
 	TObjectPtr<UMaterialInterface> VoxelMaterial;
+
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Directories to never cook", LongPackageName))
+	TArray<FDirectoryPath> ExtraWorldcompositionScanPaths;
 
 	TSharedPtr<FPangeaVoxelData> PangeaVoxelData;
 

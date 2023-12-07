@@ -37,10 +37,12 @@ namespace
 		auto& Vertices = MeshData.Positions;
 		auto& Normals = MeshData.Normals;
 		auto& Tangents = MeshData.Tangents;
+		auto& Colors = MeshData.Colors;
 		auto& UVs = MeshData.TextureCoordinates;
 
 		// Generate triangles (from quads)
 		Triangles.Reset();
+		Triangles.Empty(6 * (3 * 2)); // 6 faces x 6 triangle indices per face
 
 		const int32 NumVerts = 24; // 6 faces x 4 verts per face
 
@@ -52,6 +54,8 @@ namespace
 
 		Tangents.Reset();
 		Tangents.AddUninitialized(NumVerts);
+
+		Colors.Init(FColor::White, NumVerts);
 
 		Vertices[0] = BoxVerts[0];
 		Vertices[1] = BoxVerts[1];
