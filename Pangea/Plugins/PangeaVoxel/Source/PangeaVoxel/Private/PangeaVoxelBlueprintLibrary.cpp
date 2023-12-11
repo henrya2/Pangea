@@ -159,6 +159,17 @@ namespace
 
 		return MeshBuffersRef;
 	}
+
+	void GenerateConvexPoints(TArray<TArray<FVector>>& OutPoints, const FPangeaVoxelMeshData& MeshData)
+	{
+		OutPoints.SetNum(1);
+		OutPoints[0].Empty(MeshData.Positions.Num());
+
+		for (int32 i = 0; i < MeshData.Positions.Num(); ++i)
+		{
+			OutPoints[0].Add(FVector(MeshData.Positions[i]));
+		}
+	}
 }
 
 void UPangeaVoxelBlueprintLibrary::GenerateAndSetTestVoxelMeshBuffers(UPangeaVoxelComponent* PangeaVoxelComponent)
@@ -168,5 +179,9 @@ void UPangeaVoxelBlueprintLibrary::GenerateAndSetTestVoxelMeshBuffers(UPangeaVox
 
 	TSharedPtr<FPangeaVoxelMeshBuffers> VoxelMeshBuffers = ConvertMeshDataToMeshBuffers(MeshData);
 
+	TArray<TArray<FVector>> ConvexPoints;
+	GenerateConvexPoints(ConvexPoints, MeshData);
+
 	PangeaVoxelComponent->SetCachedMeshBuffers(VoxelMeshBuffers);
+	PangeaVoxelComponent->SetCollisionConvexMeshes(ConvexPoints);
 }
