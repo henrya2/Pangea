@@ -185,3 +185,58 @@ void UPangeaVoxelBlueprintLibrary::GenerateAndSetTestVoxelMeshBuffers(UPangeaVox
 	PangeaVoxelComponent->SetCachedMeshBuffers(VoxelMeshBuffers);
 	PangeaVoxelComponent->SetCollisionConvexMeshes(ConvexPoints);
 }
+
+namespace
+{
+	float SphereFunc(float X, float Y, float Z, float Radius)
+	{
+			return FMath::Sqrt(X * X + Y * Y + Z * Z) - Radius;
+	}
+
+	int8 ConvertToInt8Norm(float Val)
+	{
+		float QuantVal = Val * 128;
+		return (int8)FMath::Clamp((int32)QuantVal, -127, 127);
+	}
+}
+
+void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData& OutVoxelData, float Radius)
+{
+	int32 QuantUpRadius = FMath::CeilToInt(Radius);
+	int32 NumCubeGrids = QuantUpRadius * 2;
+	int32 NumVoxelPerDimension = NumCubeGrids + 1;
+
+	int32 CenterVoxel = NumVoxelPerDimension / 2; // In flatten 0 to NumCubeGrids - 1 domain
+
+	OutVoxelData.RealData.VertsSize = NumVoxelPerDimension;
+	OutVoxelData.RealData.Data.SetNumUninitialized(NumVoxelPerDimension * NumVoxelPerDimension * NumVoxelPerDimension);
+
+	auto ToFlattenArrayIndex = 
+	[CenterVoxel, NumVoxelPerDimension](int32 X, int32 Y, int32 Z) FORCENOINLINE
+	{
+			int32 ZFlatten = Z + CenterVoxel;
+			int32 YFlatten = Y + CenterVoxel;
+			int32 XFlatten = X + CenterVoxel;
+
+			return ZFlatten * NumVoxelPerDimension * NumVoxelPerDimension + 
+					+ YFlatten * NumVoxelPerDimension
+					+ XFlatten;
+	};
+
+	int32 StartVoxelCoord = -NumVoxelPerDimension / 2;
+	int32 EndVoxelCoord = NumVoxelPerDimension / 2;
+
+	for (int32 Z = StartVoxelCoord; Z <= EndVoxelCoord; ++Z)
+	{
+		for (int32 Y = StartVoxelCoord; Y <= EndVoxelCoord; ++Y)
+		{
+			for (int32 X = StartVoxelCoord; X <= EndVoxelCoord; ++X)
+			{
+				float Val = SphereFunc(X, Y, Z, Radius);
+				int8 QuantNorm8 = ConvertToInt8Norm(Val);
+				int32 ArrayIndex = ToFlattenArrayIndex(X, Y, Z);
+				OutVoxelData.RealData.Data[ArrayIndex] = QuantNorm8;
+			}
+		}
+	}
+}
