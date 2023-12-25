@@ -190,7 +190,7 @@ namespace
 {
 	float SphereFunc(float X, float Y, float Z, float Radius)
 	{
-			return FMath::Sqrt(X * X + Y * Y + Z * Z) - Radius;
+			return FMath::Sqrt(X * X + Y * Y + Z * Z) - (Radius * Radius);
 	}
 
 	int8 ConvertToInt8Norm(float Val)
@@ -200,10 +200,15 @@ namespace
 	}
 }
 
+static float ClampToNormalRange(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB)
+{
+	return FMath::GetMappedRangeValueClamped(FVector2f(InRangeA, InRangeB), FVector2f(OutRangeA, OutRangeB), Value);
+}
+
 void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData& OutVoxelData, float Radius)
 {
 	int32 QuantUpRadius = FMath::CeilToInt(Radius);
-	int32 NumCubeGrids = QuantUpRadius * 2;
+	int32 NumCubeGrids = (QuantUpRadius + 1) * 2; // Adds one more grid at 3 axes both sides (-, + sides, <->)
 	int32 NumVoxelPerDimension = NumCubeGrids + 1;
 
 	int32 CenterVoxel = NumVoxelPerDimension / 2; // In flatten 0 to NumCubeGrids - 1 domain
@@ -223,6 +228,12 @@ void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData&
 					+ XFlatten;
 	};
 
+	auto RemapClampValue = [Radius](float Value) FORCENOINLINE
+	{
+		float RadiusSq = Radius * Radius;
+		return ClampToNormalRange(Value, -RadiusSq, RadiusSq, -1.f, 1.f);
+	};
+
 	int32 StartVoxelCoord = -NumVoxelPerDimension / 2;
 	int32 EndVoxelCoord = NumVoxelPerDimension / 2;
 
@@ -233,7 +244,7 @@ void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData&
 			for (int32 X = StartVoxelCoord; X <= EndVoxelCoord; ++X)
 			{
 				float Val = SphereFunc(X, Y, Z, Radius);
-				int8 QuantNorm8 = ConvertToInt8Norm(Val);
+				int8 QuantNorm8 = ConvertToInt8Norm(RemapClampValue(Val));
 				int32 ArrayIndex = ToFlattenArrayIndex(X, Y, Z);
 				OutVoxelData.RealData.Data[ArrayIndex] = QuantNorm8;
 			}
