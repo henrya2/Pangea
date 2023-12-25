@@ -58,6 +58,7 @@ namespace Transvoxel
 	extern PANGEAVOXEL_API const uint8 regularCellClass[256];
 	extern PANGEAVOXEL_API const RegularCellData regularCellData[16];
 	extern PANGEAVOXEL_API const uint16 regularVertexData[256][12];
+
 	extern PANGEAVOXEL_API const uint8 transitionCellClass[512];
 	extern PANGEAVOXEL_API const TransitionCellData transitionCellData[56];
 	extern PANGEAVOXEL_API const uint8 transitionCornerData[13];
