@@ -178,7 +178,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 							VertexIndex = Vertices.Num();
 
-							Vertices.Add(FVector3f(IntersectionPoint));
+							Vertices.Add(FVector3f(IntersectionPoint) + BasePosition);
 							TextureCoords.Add(TArray<FVector2f>{{IntersectionPoint.X, IntersectionPoint.Y}});
 							Colors.Add(FColor::White);
 
@@ -190,6 +190,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							int32 Zn = FMath::Clamp(VZ - 1, 0, DataSize - 1);
 							int32 Zp = FMath::Clamp(VZ + 1, 0, DataSize + 1);
 
+							// 
 							float DiffX = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xp, VY, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xn, VY, VZ)]);
 							float DiffY = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yp, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yn, VZ)]);
 							float DiffZ = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zp)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zn)]);
