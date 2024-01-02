@@ -15,7 +15,9 @@ public:
 	void GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, const FVector3f& BasePosition, float VoxelScale, FPangeaVoxelMeshData& OutMesh);
 
 protected:
-	int32 GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y);
+	int32 GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y) const;
+
+	int32 GetVoxelIndex(int32 X, int32 Y, int32 Z) const;
 
 	int32 ChunkSize;
 

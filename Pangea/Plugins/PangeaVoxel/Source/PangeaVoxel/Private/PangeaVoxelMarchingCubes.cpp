@@ -26,6 +26,10 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 	using namespace Transvoxel;
 
 	auto& Vertices = OutMesh.Positions;
+	auto& Normals = OutMesh.Normals;
+	auto& Tangents = OutMesh.Tangents;
+	auto& TextureCoords = OutMesh.TextureCoordinates;
+	auto& Colors = OutMesh.Colors;
 	auto& Indices = OutMesh.Indices;
 
 	auto VoxelValueToFloat = [](int32 VoxelVal) FORCENOINLINE
@@ -175,6 +179,25 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							VertexIndex = Vertices.Num();
 
 							Vertices.Add(FVector3f(IntersectionPoint));
+							TextureCoords.Add(TArray<FVector2f>{{IntersectionPoint.X, IntersectionPoint.Y}});
+							Colors.Add(FColor::White);
+
+							// Central differences
+							int32 Xn = FMath::Clamp(VX - 1, 0, DataSize - 1);
+							int32 Xp = FMath::Clamp(VX + 1, 0, DataSize + 1);
+							int32 Yn = FMath::Clamp(VY - 1, 0, DataSize - 1);
+							int32 Yp = FMath::Clamp(VY + 1, 0, DataSize + 1);
+							int32 Zn = FMath::Clamp(VZ - 1, 0, DataSize - 1);
+							int32 Zp = FMath::Clamp(VZ + 1, 0, DataSize + 1);
+
+							float DiffX = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xp, VY, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xn, VY, VZ)]);
+							float DiffY = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yp, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yn, VZ)]);
+							float DiffZ = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zp)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zn)]);
+							FVector3f IntersectionNormal = FVector3f(DiffX, DiffY, DiffZ).GetSafeNormal(); // 1.f / 2.f is not necessary here, since it will renormalize.
+							Normals.Add(IntersectionNormal);
+
+							// Adds a fake tangent (1, 0, 0)
+							Tangents.Add(FPangeaMeshTangent(1.f, 0, 0));
 
 							// Save vertex if not on edge
 							if (CacheDirection & 0x80 || !CacheDirection) // ValueAtB.IsNull() && LocalIndexB == 7 => !CacheDirection
@@ -236,7 +259,12 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 	}
 }
 
-int32 FPangeaVoxelMarchingCubes::GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y)
+int32 FPangeaVoxelMarchingCubes::GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y) const
 {
 	return EdgeIndex + X * 4 + Y * 4 * ChunkSize;
+}
+
+int32 FPangeaVoxelMarchingCubes::GetVoxelIndex(int32 X, int32 Y, int32 Z) const
+{
+	return Z * ChunkSize * ChunkSize + Y * ChunkSize + X;
 }
