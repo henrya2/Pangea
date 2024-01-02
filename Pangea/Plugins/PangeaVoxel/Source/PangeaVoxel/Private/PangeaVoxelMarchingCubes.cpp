@@ -178,7 +178,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 							VertexIndex = Vertices.Num();
 
-							Vertices.Add(FVector3f(IntersectionPoint) + BasePosition);
+							Vertices.Add(FVector3f(IntersectionPoint) * VoxelScale + BasePosition);
 							TextureCoords.Add(TArray<FVector2f>{{IntersectionPoint.X, IntersectionPoint.Y}});
 							Colors.Add(FColor::White);
 
@@ -190,7 +190,9 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							int32 Zn = FMath::Clamp(VZ - 1, 0, DataSize - 1);
 							int32 Zp = FMath::Clamp(VZ + 1, 0, DataSize + 1);
 
-							// 
+							// calculate gradient based voxel distances using central differences (a kind of finite difference), \delta x = (x+1) - (x-1) = 2;
+							// \delta y and \delta z are similar too. 
+							// Gradient = ((D(x + 1, y , z) - D(x - 1, y, z)) / 2, (D(x, y + 1 , z) - D(x, y - 1, z)) / 2, (D(x, y , z + 1) - D(x, y, z - 1)) / 2)
 							float DiffX = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xp, VY, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xn, VY, VZ)]);
 							float DiffY = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yp, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yn, VZ)]);
 							float DiffZ = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zp)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zn)]);

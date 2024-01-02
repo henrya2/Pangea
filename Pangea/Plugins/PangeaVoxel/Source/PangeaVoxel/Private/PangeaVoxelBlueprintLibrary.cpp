@@ -5,6 +5,7 @@
 #include "ProceduralMeshComponent.h"
 #include "PangeaVoxelMeshChunk.h"
 #include "PangeaMeshTangent.h"
+#include "PangeaVoxelMarchingCubes.h"
 
 namespace
 {
@@ -205,7 +206,7 @@ static float ClampToNormalRange(float Value, float InRangeA, float InRangeB, flo
 	return FMath::GetMappedRangeValueClamped(FVector2f(InRangeA, InRangeB), FVector2f(OutRangeA, OutRangeB), Value);
 }
 
-void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData& OutVoxelData, float Radius)
+static void GenerateSphereVoxelData(FPangeaVoxelData& OutVoxelData, float Radius)
 {
 	int32 QuantUpRadius = FMath::CeilToInt(Radius);
 	int32 NumCubeGrids = (QuantUpRadius + 1) * 2; // Adds one more grid at 3 axes both sides (-, + sides, <->)
@@ -213,25 +214,27 @@ void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData&
 
 	int32 CenterVoxel = NumVoxelPerDimension / 2; // In flatten 0 to NumCubeGrids - 1 domain
 
-	OutVoxelData.RealData.VertsSize = NumVoxelPerDimension;
-	OutVoxelData.RealData.Data.SetNumUninitialized(NumVoxelPerDimension * NumVoxelPerDimension * NumVoxelPerDimension);
+	OutVoxelData.VertsSize = NumVoxelPerDimension;
+	OutVoxelData.Data.SetNumUninitialized(NumVoxelPerDimension * NumVoxelPerDimension * NumVoxelPerDimension);
 
-	auto ToFlattenArrayIndex = 
-	[CenterVoxel, NumVoxelPerDimension](int32 X, int32 Y, int32 Z) FORCENOINLINE
+	auto ToFlattenArrayIndex =
+		[CenterVoxel, NumVoxelPerDimension](int32 X, int32 Y, int32 Z) FORCENOINLINE
 	{
 			int32 ZFlatten = Z + CenterVoxel;
 			int32 YFlatten = Y + CenterVoxel;
 			int32 XFlatten = X + CenterVoxel;
 
-			return ZFlatten * NumVoxelPerDimension * NumVoxelPerDimension + 
-					+ YFlatten * NumVoxelPerDimension
+			return ZFlatten * NumVoxelPerDimension * NumVoxelPerDimension +
+					+YFlatten * NumVoxelPerDimension
 					+ XFlatten;
 	};
 
-	auto RemapClampValue = [Radius](float Value) FORCENOINLINE
+	float QuantExt = 2;
+
+	auto RemapClampValue = [QuantExt](float Value) FORCENOINLINE
 	{
-		float RadiusSq = Radius * Radius;
-		return ClampToNormalRange(Value, -RadiusSq, RadiusSq, -1.f, 1.f);
+		float QuantExtSq = QuantExt * QuantExt;
+		return ClampToNormalRange(Value, -QuantExtSq, QuantExtSq, -1.f, 1.f);
 	};
 
 	int32 StartVoxelCoord = -NumVoxelPerDimension / 2;
@@ -246,8 +249,38 @@ void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData&
 				float Val = SphereFunc(X, Y, Z, Radius);
 				int8 QuantNorm8 = ConvertToInt8Norm(RemapClampValue(Val));
 				int32 ArrayIndex = ToFlattenArrayIndex(X, Y, Z);
-				OutVoxelData.RealData.Data[ArrayIndex] = QuantNorm8;
+				OutVoxelData.Data[ArrayIndex] = QuantNorm8;
 			}
 		}
 	}
+}
+
+void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelData(FTestPangeaVoxelData& OutVoxelData, float Radius)
+{
+	::GenerateSphereVoxelData(OutVoxelData.RealData, Radius);
+}
+
+void UPangeaVoxelBlueprintLibrary::GenerateSphereVoxelDataComponent(UPangeaVoxelComponent* PangeaVoxelComponent, float Radius)
+{
+	TSharedPtr<FPangeaVoxelData> VoxelDataPtr = MakeShared<FPangeaVoxelData>();
+	::GenerateSphereVoxelData(*VoxelDataPtr.Get(), Radius);
+	PangeaVoxelComponent->SetVoxelData(VoxelDataPtr);
+}
+
+void UPangeaVoxelBlueprintLibrary::DoMarchingCubesComponent(UPangeaVoxelComponent* PangeaVoxelComponent)
+{
+	TSharedPtr<FPangeaVoxelData> VoxelDataPtr = PangeaVoxelComponent->GetVoxelData();
+	TSharedPtr<FPangeaVoxelMarchingCubes> MarchingCubesMesher = MakeShared<FPangeaVoxelMarchingCubes>(VoxelDataPtr->VertsSize);
+
+	FPangeaVoxelMeshData MeshData;
+
+	MarchingCubesMesher->GenerateMeshFromChunk(*VoxelDataPtr.Get(), FVector3f::Zero(), PangeaVoxelComponent->GetVoxelGridSize(), MeshData);
+
+	TSharedPtr<FPangeaVoxelMeshBuffers> VoxelMeshBuffers = ConvertMeshDataToMeshBuffers(MeshData);
+
+	TArray<TArray<FVector>> ConvexPoints;
+	GenerateConvexPoints(ConvexPoints, MeshData);
+
+	PangeaVoxelComponent->SetCachedMeshBuffers(VoxelMeshBuffers);
+	PangeaVoxelComponent->SetCollisionConvexMeshes(ConvexPoints);
 }

@@ -18,6 +18,14 @@ class PANGEAVOXEL_API UPangeaVoxelComponent : public UPrimitiveComponent
 public:
 	UPangeaVoxelComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	void SetVoxelData(TSharedPtr<FPangeaVoxelData> InVoxelData);
+
+	TSharedPtr<FPangeaVoxelData> GetVoxelData() const { return PangeaVoxelData; }
+
+	void SetVoxelGridSize(float InGridSize);
+
+	float GetVoxelGridSize() const { return VoxelGridSize; }
+
 	//~ Begin
 	virtual void GetUsedMaterials(TArray<UMaterialInterface *>& OutMaterials, bool bGetDebugMaterials = false) const override;
 
@@ -79,8 +87,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UMaterialInterface> VoxelMaterial;
 
-	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Directories to never cook", LongPackageName))
-	TArray<FDirectoryPath> ExtraWorldcompositionScanPaths;
+	/** The local length of two adjacent voxel vertices */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Voxel)
+	float VoxelGridSize = 50.f;
 
 	TSharedPtr<FPangeaVoxelData> PangeaVoxelData;
 

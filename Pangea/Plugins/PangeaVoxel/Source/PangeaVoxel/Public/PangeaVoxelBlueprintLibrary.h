@@ -28,4 +28,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "PangeaVoxel")
 	static void GenerateSphereVoxelData(FTestPangeaVoxelData& OutVoxelData, float Radius);
+
+	UFUNCTION(BlueprintCallable, Category = "PangeaVoxel")
+	static void GenerateSphereVoxelDataComponent(UPangeaVoxelComponent* PangeaVoxelComponent, float Radius);
+
+	UFUNCTION(BlueprintCallable, Category = "PangeaVoxel")
+	static void DoMarchingCubesComponent(UPangeaVoxelComponent* PangeaVoxelComponent);
 };

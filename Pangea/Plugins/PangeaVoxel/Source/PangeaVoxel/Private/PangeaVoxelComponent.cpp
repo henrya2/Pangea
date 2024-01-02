@@ -10,6 +10,16 @@ UPangeaVoxelComponent::UPangeaVoxelComponent(const FObjectInitializer& ObjectIni
 
 }
 
+void UPangeaVoxelComponent::SetVoxelData(TSharedPtr<FPangeaVoxelData> InVoxelData)
+{
+	PangeaVoxelData = InVoxelData;
+}
+
+void UPangeaVoxelComponent::SetVoxelGridSize(float InGridSize)
+{
+	VoxelGridSize = InGridSize;
+}
+
 FPrimitiveSceneProxy* UPangeaVoxelComponent::CreateSceneProxy()
 {
 	if (GetCachedMeshBuffers().IsValid())
