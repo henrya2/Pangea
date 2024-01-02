@@ -23,7 +23,6 @@ FPangeaVoxelMarchingCubes::~FPangeaVoxelMarchingCubes()
 
 void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, const FVector3f& BasePosition, float VoxelScale, FPangeaVoxelMeshData& OutMesh)
 {
-/*
 	using namespace Transvoxel;
 
 	auto& Vertices = OutMesh.Positions;
@@ -74,7 +73,6 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 					// second bit: Y is valid
 					// third bit:  Z is valid
 					const uint8 ValidityMask = uint8(VX != 0) | (uint8(VY != 0) << 1) | (uint8(VZ != 0) << 2);
-					uint32 CellVertexIndex[12];
 
 					int32 TriangleCount = CellData.GetTriangleCount();
 
@@ -84,7 +82,6 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 					TStaticArray<int32, 16> VertexIndices;
 					for (int32 a = 0; a < VertexCount; ++a)
 					{
-						uint32 Index;
 						int32 VertexIndex = -2;
 
 						uint16 VertexData = VertexArray[a];
@@ -95,7 +92,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 						int32 D1 = distance[V1];
 
 						uint8 EdgeIndex = (VertexData >> 8) & 0x0F; 
-						// the lower nibble tells the index of the vertex in the preceding cell that should be reused 
+						// The lower nibble of higher byte tells the index of the vertex in the preceding cell that should be reused 
 						// or the index of the vertex in the current cell that should be created
 
 						// Direction to go to use an already created vertex: 
@@ -105,6 +102,8 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 						// fourth bit: vertex isn't cached
 						uint8 CacheDirection = VertexData >> 12;
 
+						// Look at Voxel-Based Terrain for Real-Time Virtual Simulations, 3.3 High-Performance Implementation
+						// In the event that the sample value at a corner is exactly zero ................
 						if (D0 == 0)
 						{
 							EdgeIndex = 0;
@@ -125,11 +124,14 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							int32 YDiff = (CacheDirection & 0x02) != 0 ? 1 : 0;
 							int32 ZDiff = (CacheDirection & 0x04) != 0 ? 1 : 0;
 
-							VertexIndex = (ZDiff ? OldCache : CurrentCache)[GetCacheIndex(EdgeIndex, VX - XDiff, VY - YDiff)];
+							VertexIndex = (ZDiff != 0 ? OldCache : CurrentCache)[GetCacheIndex(EdgeIndex, VX - XDiff, VY - YDiff)];
 						}
 
+						// VertexIndex = -1 is only from Cache, it is corner 7 (CacheEdge = 0) 
 						if (!bIsVertexCached || VertexIndex == -1)
 						{
+							// Please refer to Figure 3.7, (V0 and V1 are the corners of a cell numbered as figure shown.)
+							// Voxel vertex is carefully numbered, as lowest number is 0, ZYX each bit contain +1 in corresponding axis.
 							const FIntVector PositionA((VX + (V0 & 0x01)) * Step,
 								(VY + ((V0 & 0x02) >> 1)) * Step,
 								(VZ + ((V0 & 0x04) >> 2)) * Step);
@@ -138,7 +140,6 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 								(VZ + ((V1 & 0x04) >> 2)) * Step);
 
 							FVector3f IntersectionPoint;
-							FIntVector MatPosition;
 
 							if (EdgeIndex == 0)
 							{
@@ -151,7 +152,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 									IntersectionPoint = FVector3f(PositionB);
 								}
 							}
-							else // From Voxel plugin's LOD = 0
+							else 
 							{
 								const float Alpha = VoxelValueToFloat(D1) / (VoxelValueToFloat(D1) - VoxelValueToFloat(D0));
 
@@ -167,6 +168,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 									IntersectionPoint = FVector3f(PositionA.X, PositionA.Y, FMath::Lerp<float>(PositionA.Z, PositionB.Z, Alpha));
 									break;
 								default:
+									break;
 								}
 							}
 
@@ -181,11 +183,13 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							}
 						}
 
-						VertexIndices[a] = VertexIndex;
+						VertexIndices[a] = VertexIndex; // actual index in vertex data stream
 
+						// original codes from paper
+						/*
 						int32 t = (D1 << 8) / (D1 - D0);
 
-						if ((t & 0x00FF) != 0)
+						if ((t & 0x00FF) != 0) // it is false only when D0 is 0 but D1 is not 0
 						{
 							// Vertex lies in the interior of the edge
 							float Alpha = VoxelValueToFloat(D1) / (VoxelValueToFloat(D1) - VoxelValueToFloat(D0));
@@ -210,12 +214,15 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							// Vertex lies at the lower-numbered endpoint
 							// Always try to reuse corner vertex from a preceding cell.
 						}
+						*/
 					}
 
 					// Add triangles
 					// 3 vertex per triangle
 					for (int32 Index = 0; Index < 3 * CellData.GetTriangleCount(); Index += 3)
 					{
+						// CellData.vertexIndex is a sequence of integer, like 0 1 2 ....(it is not related to other stuff)
+						// actual indices in vertex data stream are stored in VertexIndices array which CellData.vertexIndex value corresponding to its array index.
 						Indices.Add(VertexIndices[CellData.vertexIndex[Index + 0]]);
 						Indices.Add(VertexIndices[CellData.vertexIndex[Index + 1]]);
 						Indices.Add(VertexIndices[CellData.vertexIndex[Index + 2]]);
@@ -224,9 +231,9 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 			}
 		}
 
+		// ping pong cachedata
 		Swap(CurrentCacheData, OldCacheData);
 	}
-*/
 }
 
 int32 FPangeaVoxelMarchingCubes::GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y)

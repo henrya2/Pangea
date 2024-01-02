@@ -21,6 +21,7 @@ protected:
 
 	int32 Step;
 
+	// Cache data stores indices of 4 vertices described in 3.3 section of Voxel-Based Terrain  for Real-Time Virtual Simulations
 	TArray<int32> CurrentCache;
 	TArray<int32> OldCache;
 
