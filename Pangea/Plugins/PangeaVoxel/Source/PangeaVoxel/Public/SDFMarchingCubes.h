@@ -1,3 +1,5 @@
+#pragma once
+
 #include "SDFMesher.h"
 
 class FSDFMarchingCubes : public ISDFMesher
