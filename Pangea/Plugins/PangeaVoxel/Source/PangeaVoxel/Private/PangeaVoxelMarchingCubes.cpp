@@ -7,8 +7,9 @@
 FPangeaVoxelMarchingCubes::FPangeaVoxelMarchingCubes(int32 InChunkSize)
 	: ChunkSize(InChunkSize)
 {
-	CurrentCache.SetNumUninitialized(ChunkSize * ChunkSize * 4);
-	OldCache.SetNumUninitialized(ChunkSize * ChunkSize * 4);
+	ChunkCellSize = ChunkSize - 1;
+	CurrentCache.SetNumUninitialized(ChunkCellSize * ChunkCellSize * 4);
+	OldCache.SetNumUninitialized(ChunkCellSize * ChunkCellSize * 4);
 
 	CurrentCacheData = CurrentCache.GetData();
 	OldCacheData = OldCache.GetData();
@@ -47,7 +48,10 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 			alignas(8) int8 distance[8];
 			for (int32 VX = 0; VX < CellCount; ++VX)
 			{
-				CurrentCache[GetCacheIndex(0, VX, VY)] = -1; // Set EdgeIndex 0 to -1 if the cell isn't voxelized, eg all corners = 0
+				CurrentCacheData[GetCacheIndex(0, VX, VY)] = -1; // Set EdgeIndex 0 to -1 if the cell isn't voxelized, eg all corners = 0
+				CurrentCacheData[GetCacheIndex(1, VX, VY)] = -1; // Set EdgeIndex 0 to -1 if the cell isn't voxelized, eg all corners = 0
+				CurrentCacheData[GetCacheIndex(2, VX, VY)] = -1; // Set EdgeIndex 0 to -1 if the cell isn't voxelized, eg all corners = 0
+				CurrentCacheData[GetCacheIndex(3, VX, VY)] = -1; // Set EdgeIndex 0 to -1 if the cell isn't voxelized, eg all corners = 0
 
 				int32 CubeIndices[8];
 				CubeIndices[0] = GetVoxelIndex(VX,     VY,     VZ);						// (0, 0, 0)
@@ -67,6 +71,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 				uint32 CaseCode = 
 					((distance[0] >> 7) & 0x01) | ((distance[2] >> 5) & 0x04) | ((distance[4] >> 3) & 0x10) | ((distance[6] >> 1) & 0x40) |
 					((distance[1] >> 6) & 0x02) | ((distance[3] >> 4) & 0x08) | ((distance[5] >> 2) & 0x20) | (distance[7] & 0x80);
+				CaseCode ^= 0xFF; // Flip the case code
 
 				const RegularCellData& CellData = regularCellData[regularCellClass[CaseCode]];
 
@@ -84,7 +89,8 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 					TStaticArray<int32, 16> VertexIndices;
 
-					for (int32 a = VertexCount - 1; a >= 0; --a)
+					for (int32 a = 0; a < VertexCount; ++a)
+					//for (int32 a = VertexCount - 1; a >= 0; --a)
 					{
 						int32 VertexIndex = -2;
 
@@ -128,7 +134,9 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							int32 YDiff = (CacheDirection & 0x02) != 0 ? 1 : 0;
 							int32 ZDiff = (CacheDirection & 0x04) != 0 ? 1 : 0;
 
-							VertexIndex = (ZDiff != 0 ? OldCache : CurrentCache)[GetCacheIndex(EdgeIndex, VX - XDiff, VY - YDiff)];
+							VertexIndex = (ZDiff != 0 ? OldCacheData : CurrentCacheData)[GetCacheIndex(EdgeIndex, VX - XDiff, VY - YDiff)];
+
+							//checkf(VertexIndex < 205 && VertexIndex >= 0, TEXT("VertexInde is out of range!!! VertexIndex: %d"), VertexIndex);
 						}
 
 						// VertexIndex = -1 is only from Cache, it is corner 7 (CacheEdge = 0) 
@@ -158,7 +166,8 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							}
 							else 
 							{
-								const float Alpha = VoxelValueToFloat(D1) / (VoxelValueToFloat(D1) - VoxelValueToFloat(D0));
+								//const float Alpha = VoxelValueToFloat(D1) / (VoxelValueToFloat(D1) - VoxelValueToFloat(D0));
+								const float Alpha = VoxelValueToFloat(D0) / (VoxelValueToFloat(D0) - VoxelValueToFloat(D1)); // Need to be flipped
 
 								switch (EdgeIndex)
 								{
@@ -205,11 +214,12 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							// Save vertex if not on edge, be careful here, CacheDirection is the higher nibble of higher byte of vertexdata
 							if (CacheDirection & 0x08 || !CacheDirection) // ValueAtB.IsNull() && LocalIndexB == 7 => !CacheDirection
 							{
-								CurrentCache[GetCacheIndex(EdgeIndex, VX, VY)] = VertexIndex;
+								CurrentCacheData[GetCacheIndex(EdgeIndex, VX, VY)] = VertexIndex;
 							}
 						}
 
-						VertexIndices[VertexCount - 1 - a] = VertexIndex; // actual index in vertex data stream, reverse the order
+						//VertexIndices[VertexCount - 1 - a] = VertexIndex; // actual index in vertex data stream, reverse the order
+						VertexIndices[a] = VertexIndex;
 
 						// original codes from paper
 						/*
@@ -264,7 +274,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 int32 FPangeaVoxelMarchingCubes::GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y) const
 {
-	return EdgeIndex + X * 4 + Y * 4 * ChunkSize;
+	return EdgeIndex + X * 4 + Y * 4 * ChunkCellSize;
 }
 
 int32 FPangeaVoxelMarchingCubes::GetVoxelIndex(int32 X, int32 Y, int32 Z) const

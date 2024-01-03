@@ -20,6 +20,7 @@ protected:
 	int32 GetVoxelIndex(int32 X, int32 Y, int32 Z) const;
 
 	int32 ChunkSize;
+	int32 ChunkCellSize;
 
 	int32 Step;
 

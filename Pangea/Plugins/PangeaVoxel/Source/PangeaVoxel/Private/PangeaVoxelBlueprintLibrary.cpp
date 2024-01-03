@@ -209,7 +209,7 @@ static float ClampToNormalRange(float Value, float InRangeA, float InRangeB, flo
 static void GenerateSphereVoxelData(FPangeaVoxelData& OutVoxelData, float Radius)
 {
 	int32 QuantUpRadius = FMath::CeilToInt(Radius);
-	int32 NumCubeGrids = (QuantUpRadius + 1) * 2; // Adds one more grid at 3 axes both sides (-, + sides, <->)
+	int32 NumCubeGrids = (QuantUpRadius + 2) * 2; // Adds one more grid at 3 axes both sides (-, + sides, <->)
 	int32 NumVoxelPerDimension = NumCubeGrids + 1;
 
 	int32 CenterVoxel = NumVoxelPerDimension / 2; // In flatten 0 to NumCubeGrids - 1 domain
