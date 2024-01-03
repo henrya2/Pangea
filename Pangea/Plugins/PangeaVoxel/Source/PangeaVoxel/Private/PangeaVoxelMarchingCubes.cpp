@@ -168,6 +168,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							{
 								const float Alpha = VoxelValueToFloat(D0) / (VoxelValueToFloat(D0) - VoxelValueToFloat(D1));
 
+								// Look into Figure 3.7 and Figure 3.8(a), 0 is not here it is at corner, not on edge.
 								switch (EdgeIndex)
 								{
 								case 2: // X
