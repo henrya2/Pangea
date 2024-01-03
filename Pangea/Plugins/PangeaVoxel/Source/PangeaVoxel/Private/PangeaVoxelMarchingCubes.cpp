@@ -71,7 +71,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 				uint32 CaseCode = 
 					((distance[0] >> 7) & 0x01) | ((distance[2] >> 5) & 0x04) | ((distance[4] >> 3) & 0x10) | ((distance[6] >> 1) & 0x40) |
 					((distance[1] >> 6) & 0x02) | ((distance[3] >> 4) & 0x08) | ((distance[5] >> 2) & 0x20) | (distance[7] & 0x80);
-				CaseCode ^= 0xFF; // Flip the case code
+				//CaseCode ^= 0xFF; // Flip the case code
 
 				const RegularCellData& CellData = regularCellData[regularCellClass[CaseCode]];
 
@@ -89,8 +89,8 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 					TStaticArray<int32, 16> VertexIndices;
 
-					for (int32 a = 0; a < VertexCount; ++a)
-					//for (int32 a = VertexCount - 1; a >= 0; --a)
+					//for (int32 a = 0; a < VertexCount; ++a)
+					for (int32 a = VertexCount - 1; a >= 0; --a)
 					{
 						int32 VertexIndex = -2;
 
@@ -166,8 +166,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							}
 							else 
 							{
-								//const float Alpha = VoxelValueToFloat(D1) / (VoxelValueToFloat(D1) - VoxelValueToFloat(D0));
-								const float Alpha = VoxelValueToFloat(D0) / (VoxelValueToFloat(D0) - VoxelValueToFloat(D1)); // Need to be flipped
+								const float Alpha = VoxelValueToFloat(D0) / (VoxelValueToFloat(D0) - VoxelValueToFloat(D1));
 
 								switch (EdgeIndex)
 								{
@@ -218,8 +217,8 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							}
 						}
 
-						//VertexIndices[VertexCount - 1 - a] = VertexIndex; // actual index in vertex data stream, reverse the order
-						VertexIndices[a] = VertexIndex;
+						VertexIndices[VertexCount - 1 - a] = VertexIndex; // actual index in vertex data stream, reverse the order
+						//VertexIndices[a] = VertexIndex;
 
 						// original codes from paper
 						/*
