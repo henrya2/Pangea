@@ -220,37 +220,6 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 						VertexIndices[VertexCount - 1 - a] = VertexIndex; // actual index in vertex data stream, reverse the order
 						//VertexIndices[a] = VertexIndex;
-
-						// original codes from paper
-						/*
-						int32 t = (D1 << 8) / (D1 - D0);
-
-						if ((t & 0x00FF) != 0) // it is false only when D0 is 0 but D1 is not 0
-						{
-							// Vertex lies in the interior of the edge
-							float Alpha = VoxelValueToFloat(D1) / (VoxelValueToFloat(D1) - VoxelValueToFloat(D0));
-
-
-						}
-						else if (t == 0)
-						{
-							// Vertex lies at the higher-numbered endpoint.
-
-							if (V1 == 7)
-							{
-								// This cell owns the vertex
-							}
-							else
-							{
-								// Try to reuse corner vertex from a preceding cell
-							}
-						}
-						else
-						{
-							// Vertex lies at the lower-numbered endpoint
-							// Always try to reuse corner vertex from a preceding cell.
-						}
-						*/
 					}
 
 					// Add triangles
