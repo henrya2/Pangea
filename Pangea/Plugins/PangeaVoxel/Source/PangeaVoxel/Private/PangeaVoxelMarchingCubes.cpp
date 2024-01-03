@@ -40,25 +40,24 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 	int32 CellCount = VoxelData.VertsSize - 1;
 
 	int32 DataSize = VoxelData.VertsSize;
-	int32 VoxelIndex = 0;
-	for (int32 VZ = 0; VZ < CellCount; ++VZ, VoxelIndex += DataSize * DataSize)
+	for (int32 VZ = 0; VZ < CellCount; ++VZ)
 	{
-		for (int32 VY = 0; VY < CellCount; ++VY, VoxelIndex += DataSize)
+		for (int32 VY = 0; VY < CellCount; ++VY)
 		{
 			alignas(8) int8 distance[8];
-			for (int32 VX = 0; VX < CellCount; ++VX, VoxelIndex += 1)
+			for (int32 VX = 0; VX < CellCount; ++VX)
 			{
 				CurrentCache[GetCacheIndex(0, VX, VY)] = -1; // Set EdgeIndex 0 to -1 if the cell isn't voxelized, eg all corners = 0
 
 				int32 CubeIndices[8];
-				CubeIndices[0] = VoxelIndex;										// (0, 0, 0)
-				CubeIndices[1] = VoxelIndex + 1;									// (1, 0, 0)
-				CubeIndices[2] = VoxelIndex + DataSize;								// (0, 1, 0) 
-				CubeIndices[3] = VoxelIndex + DataSize + 1;							// (1, 1, 0)
-				CubeIndices[4] = VoxelIndex + DataSize * DataSize;					// (0, 0, 1)
-				CubeIndices[5] = VoxelIndex + DataSize * DataSize + 1;				// (1, 0, 1)
-				CubeIndices[6] = VoxelIndex + DataSize * DataSize + DataSize;		// (0, 1, 1)
-				CubeIndices[7] = VoxelIndex + DataSize * DataSize + DataSize + 1;	// (1, 1, 1)
+				CubeIndices[0] = GetVoxelIndex(VX,     VY,     VZ);						// (0, 0, 0)
+				CubeIndices[1] = GetVoxelIndex(VX + 1, VY,     VZ);						// (1, 0, 0)
+				CubeIndices[2] = GetVoxelIndex(VX,     VY + 1, VZ);						// (0, 1, 0) 
+				CubeIndices[3] = GetVoxelIndex(VX + 1, VY + 1, VZ);						// (1, 1, 0)
+				CubeIndices[4] = GetVoxelIndex(VX    , VY    , VZ + 1);					// (0, 0, 1)
+				CubeIndices[5] = GetVoxelIndex(VX + 1, VY    , VZ + 1);					// (1, 0, 1)
+				CubeIndices[6] = GetVoxelIndex(VX    , VY + 1, VZ + 1);					// (0, 1, 1)
+				CubeIndices[7] = GetVoxelIndex(VX + 1, VY + 1, VZ + 1);					// (1, 1, 1)
 
 				for (int32 tt = 0; tt < 8; ++tt)
 				{
@@ -84,7 +83,8 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 					const uint16* VertexArray = regularVertexData[CaseCode];
 
 					TStaticArray<int32, 16> VertexIndices;
-					for (int32 a = 0; a < VertexCount; ++a)
+
+					for (int32 a = VertexCount - 1; a >= 0; --a)
 					{
 						int32 VertexIndex = -2;
 
@@ -184,11 +184,11 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 							// Central differences
 							int32 Xn = FMath::Clamp(VX - 1, 0, DataSize - 1);
-							int32 Xp = FMath::Clamp(VX + 1, 0, DataSize + 1);
+							int32 Xp = FMath::Clamp(VX + 1, 0, DataSize - 1);
 							int32 Yn = FMath::Clamp(VY - 1, 0, DataSize - 1);
-							int32 Yp = FMath::Clamp(VY + 1, 0, DataSize + 1);
+							int32 Yp = FMath::Clamp(VY + 1, 0, DataSize - 1);
 							int32 Zn = FMath::Clamp(VZ - 1, 0, DataSize - 1);
-							int32 Zp = FMath::Clamp(VZ + 1, 0, DataSize + 1);
+							int32 Zp = FMath::Clamp(VZ + 1, 0, DataSize - 1);
 
 							// calculate gradient based voxel distances using central differences (a kind of finite difference), \delta x = (x+1) - (x-1) = 2;
 							// \delta y and \delta z are similar too. 
@@ -202,14 +202,14 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 							// Adds a fake tangent (1, 0, 0)
 							Tangents.Add(FPangeaMeshTangent(1.f, 0, 0));
 
-							// Save vertex if not on edge
-							if (CacheDirection & 0x80 || !CacheDirection) // ValueAtB.IsNull() && LocalIndexB == 7 => !CacheDirection
+							// Save vertex if not on edge, be careful here, CacheDirection is the higher nibble of higher byte of vertexdata
+							if (CacheDirection & 0x08 || !CacheDirection) // ValueAtB.IsNull() && LocalIndexB == 7 => !CacheDirection
 							{
 								CurrentCache[GetCacheIndex(EdgeIndex, VX, VY)] = VertexIndex;
 							}
 						}
 
-						VertexIndices[a] = VertexIndex; // actual index in vertex data stream
+						VertexIndices[VertexCount - 1 - a] = VertexIndex; // actual index in vertex data stream, reverse the order
 
 						// original codes from paper
 						/*
