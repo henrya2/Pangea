@@ -84,7 +84,7 @@ protected:
 
 protected:
 	/** The material to render with */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Material)
 	TObjectPtr<UMaterialInterface> VoxelMaterial;
 
 	/** The local length of two adjacent voxel vertices */

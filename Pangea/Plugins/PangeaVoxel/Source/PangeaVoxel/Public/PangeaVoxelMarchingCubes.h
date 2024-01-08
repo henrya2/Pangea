@@ -15,9 +15,12 @@ public:
 	void GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, const FVector3f& BasePosition, float VoxelScale, FPangeaVoxelMeshData& OutMesh);
 
 protected:
+	float VoxelValueToFloat(int32 VoxelVal) const;
 	int32 GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y) const;
 
 	int32 GetVoxelIndex(int32 X, int32 Y, int32 Z) const;
+
+	FVector3f GetNormalFromVoxelGradient(const FIntVector& VoxelPosition, const FPangeaVoxelData& VoxelData) const;
 
 	int32 ChunkSize;
 	int32 ChunkCellSize;

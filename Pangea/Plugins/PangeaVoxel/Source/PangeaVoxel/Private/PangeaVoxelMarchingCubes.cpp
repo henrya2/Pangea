@@ -22,6 +22,27 @@ FPangeaVoxelMarchingCubes::~FPangeaVoxelMarchingCubes()
 
 }
 
+FVector3f FPangeaVoxelMarchingCubes::GetNormalFromVoxelGradient(const FIntVector& VoxelPosition, const FPangeaVoxelData& VoxelData) const
+{
+	// Central differences
+	int32 Xn = FMath::Clamp(VoxelPosition.X - 1, 0, ChunkSize - 1);
+	int32 Xp = FMath::Clamp(VoxelPosition.X + 1, 0, ChunkSize - 1);
+	int32 Yn = FMath::Clamp(VoxelPosition.Y - 1, 0, ChunkSize - 1);
+	int32 Yp = FMath::Clamp(VoxelPosition.Y + 1, 0, ChunkSize - 1);
+	int32 Zn = FMath::Clamp(VoxelPosition.Z - 1, 0, ChunkSize - 1);
+	int32 Zp = FMath::Clamp(VoxelPosition.Z + 1, 0, ChunkSize - 1);
+
+	// calculate gradient based voxel distances using central differences (a kind of finite difference), \delta x = (x+1) - (x-1) = 2;
+	// \delta y and \delta z are similar too. 
+	// Gradient = ((D(x + 1, y , z) - D(x - 1, y, z)) / 2, (D(x, y + 1 , z) - D(x, y - 1, z)) / 2, (D(x, y , z + 1) - D(x, y, z - 1)) / 2)
+	float DiffX = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xp, VoxelPosition.Y, VoxelPosition.Z)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xn, VoxelPosition.Y, VoxelPosition.Z)]);
+	float DiffY = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VoxelPosition.X, Yp, VoxelPosition.Z)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VoxelPosition.X, Yn, VoxelPosition.Z)]);
+	float DiffZ = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VoxelPosition.X, VoxelPosition.Y, Zp)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VoxelPosition.X, VoxelPosition.Y, Zn)]);
+	FVector3f CalculatedNormal = FVector3f(DiffX, DiffY, DiffZ).GetSafeNormal(); // 1.f / 2.f is not necessary here, since it will renormalize.	
+
+	return CalculatedNormal;
+}
+
 void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, const FVector3f& BasePosition, float VoxelScale, FPangeaVoxelMeshData& OutMesh)
 {
 	using namespace Transvoxel;
@@ -32,11 +53,6 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 	auto& TextureCoords = OutMesh.TextureCoordinates;
 	auto& Colors = OutMesh.Colors;
 	auto& Indices = OutMesh.Indices;
-
-	auto VoxelValueToFloat = [](int32 VoxelVal) FORCENOINLINE
-		{
-			return VoxelVal / 127.f;
-		};
 
 	int32 CellCount = VoxelData.VertsSize - 1;
 
@@ -152,16 +168,19 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 								(VZ + ((V1 & 0x04) >> 2)) * Step);
 
 							FVector3f IntersectionPoint;
+							FVector3f IntersectionNormal;
 
 							if (EdgeIndex == 0)
 							{
 								if (D0 == 0)
 								{
 									IntersectionPoint = FVector3f(PositionA);
+									IntersectionNormal = GetNormalFromVoxelGradient(PositionA, VoxelData);
 								}
 								else
 								{
 									IntersectionPoint = FVector3f(PositionB);
+									IntersectionNormal = GetNormalFromVoxelGradient(PositionB, VoxelData);
 								}
 							}
 							else 
@@ -183,30 +202,25 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 								default:
 									break;
 								}
+
+								IntersectionNormal = FMath::Lerp(GetNormalFromVoxelGradient(PositionA, VoxelData), GetNormalFromVoxelGradient(PositionB, VoxelData), Alpha);
 							}
 
 							VertexIndex = Vertices.Num();
 
 							Vertices.Add(FVector3f(IntersectionPoint) * VoxelScale + BasePosition);
-							TextureCoords.Add(TArray<FVector2f>{{IntersectionPoint.X, IntersectionPoint.Y}});
 							Colors.Add(FColor::White);
 
-							// Central differences
-							int32 Xn = FMath::Clamp(VX - 1, 0, DataSize - 1);
-							int32 Xp = FMath::Clamp(VX + 1, 0, DataSize - 1);
-							int32 Yn = FMath::Clamp(VY - 1, 0, DataSize - 1);
-							int32 Yp = FMath::Clamp(VY + 1, 0, DataSize - 1);
-							int32 Zn = FMath::Clamp(VZ - 1, 0, DataSize - 1);
-							int32 Zp = FMath::Clamp(VZ + 1, 0, DataSize - 1);
-
-							// calculate gradient based voxel distances using central differences (a kind of finite difference), \delta x = (x+1) - (x-1) = 2;
-							// \delta y and \delta z are similar too. 
-							// Gradient = ((D(x + 1, y , z) - D(x - 1, y, z)) / 2, (D(x, y + 1 , z) - D(x, y - 1, z)) / 2, (D(x, y , z + 1) - D(x, y, z - 1)) / 2)
-							float DiffX = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xp, VY, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(Xn, VY, VZ)]);
-							float DiffY = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yp, VZ)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, Yn, VZ)]);
-							float DiffZ = VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zp)]) - VoxelValueToFloat(VoxelData.Data[GetVoxelIndex(VX, VY, Zn)]);
-							FVector3f IntersectionNormal = FVector3f(DiffX, DiffY, DiffZ).GetSafeNormal(); // 1.f / 2.f is not necessary here, since it will renormalize.
 							Normals.Add(IntersectionNormal);
+
+							// Use test spherical UV mapping
+							{
+								auto U = 0.5f + FMath::Atan2(IntersectionNormal.Z, IntersectionNormal.X) / (2 * UE_PI);
+								auto V = 0.5f + FMath::Asin(IntersectionNormal.Y) / UE_PI;
+
+								//TextureCoords.Add(TArray<FVector2f>{{IntersectionPoint.X, IntersectionPoint.Y}});
+								TextureCoords.Add(TArray<FVector2f>{{U, V}});
+							}
 
 							// Adds a fake tangent (1, 0, 0)
 							Tangents.Add(FPangeaMeshTangent(1.f, 0, 0));
@@ -239,6 +253,11 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 		// ping pong cachedata
 		Swap(CurrentCacheData, OldCacheData);
 	}
+}
+
+float FPangeaVoxelMarchingCubes::VoxelValueToFloat(int32 VoxelVal) const
+{
+	return VoxelVal / 127.f;
 }
 
 int32 FPangeaVoxelMarchingCubes::GetCacheIndex(int32 EdgeIndex, int32 X, int32 Y) const
