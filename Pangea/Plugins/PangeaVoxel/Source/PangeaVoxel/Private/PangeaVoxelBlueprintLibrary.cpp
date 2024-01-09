@@ -274,7 +274,7 @@ void UPangeaVoxelBlueprintLibrary::DoMarchingCubesComponent(UPangeaVoxelComponen
 
 	FPangeaVoxelMeshData MeshData;
 
-	MarchingCubesMesher->GenerateMeshFromChunk(*VoxelDataPtr.Get(), FVector3f::Zero(), PangeaVoxelComponent->GetVoxelGridSize(), MeshData);
+	MarchingCubesMesher->GenerateMeshFromChunk(*VoxelDataPtr.Get(), MeshData);
 
 	TSharedPtr<FPangeaVoxelMeshBuffers> VoxelMeshBuffers = ConvertMeshDataToMeshBuffers(MeshData);
 

@@ -12,7 +12,7 @@ public:
 
 	~FPangeaVoxelMarchingCubes();
 
-	void GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, const FVector3f& BasePosition, float VoxelScale, FPangeaVoxelMeshData& OutMesh);
+	void GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, FPangeaVoxelMeshData& OutMesh);
 
 protected:
 	float VoxelValueToFloat(int32 VoxelVal) const;

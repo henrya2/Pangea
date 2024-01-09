@@ -43,7 +43,7 @@ FVector3f FPangeaVoxelMarchingCubes::GetNormalFromVoxelGradient(const FIntVector
 	return CalculatedNormal;
 }
 
-void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, const FVector3f& BasePosition, float VoxelScale, FPangeaVoxelMeshData& OutMesh)
+void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& VoxelData, FPangeaVoxelMeshData& OutMesh)
 {
 	using namespace Transvoxel;
 
@@ -208,7 +208,7 @@ void FPangeaVoxelMarchingCubes::GenerateMeshFromChunk(const FPangeaVoxelData& Vo
 
 							VertexIndex = Vertices.Num();
 
-							Vertices.Add(FVector3f(IntersectionPoint) * VoxelScale + BasePosition);
+							Vertices.Add(FVector3f(IntersectionPoint));
 							Colors.Add(FColor::White);
 
 							Normals.Add(IntersectionNormal);
